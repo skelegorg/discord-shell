@@ -1,18 +1,20 @@
 import discord
 from discord.ext import commands
-from termcolor import colored
+import getpass
 import json
 import time
 import os
-import asyncio
-import sys
+import platform
+import socket
+
+if(platform.system() == "Windows"):
+    os.system('color')
 
 settings = {}
 with open("settings.json", "r") as stg:
     settings = json.loads(stg.read())
 
 client = commands.Bot(command_prefix=">")
-user = "Skelegorg"
 
 class bcolors:
     HEADER = '\033[95m'
@@ -57,9 +59,18 @@ async def open_terminal(ctx):
     channelList = {}
     messages = []
 
+    # user vanity
+    user = str(ctx.author)
+    userspl = user.split("#")
+    tag = userspl[0]
+    discriminator = "#" + userspl[1]
+
+    compname = str(socket.gethostname())
+    uname = str(getpass.getuser())
+
     # run interactive shell
     while(inTerminal):
-        command = input(f"skgorg@LAPTOP: ~/{user}/{active_guild.name}/{activeCategory} $ ")
+        command = input(f"{uname}@{compname}: ~/{tag}/{active_guild.name}/{activeCategory} $ ")
         parsedCommand = command.split()
         for item in parsedCommand:
             item = item.lower()
@@ -103,7 +114,7 @@ async def open_terminal(ctx):
                         if(not bool(settings['PRINT_IDENTIFIERS'])):
                             authorSpl = str(message.author).split("#")
                             authorOutp = authorSpl[0]
-                        print(f"{colored(authorOutp, 'yellow')}: {message.content}")
+                        print(f"{bcolors.OKGREEN}{authorOutp}:{bcolors.ENDC} {message.content}")
                 else:
                     print(f"no such channel {parsedCommand[1]}.")
             except IndexError:
@@ -124,22 +135,18 @@ async def open_terminal(ctx):
                         if(not bool(settings['PRINT_IDENTIFIERS'])):
                             authorSpl = str(message.author).split("#")
                             authorOutp = authorSpl[0]
-                        print(f"{colored(authorOutp, 'yellow')}: {message.content}")
+                        print(f"{bcolors.OKGREEN}{authorOutp}:{bcolors.ENDC} {message.content}")
                     while(sendMode):
-                        # this line breaks it if removed
+                        time.sleep(0.05)
                         curMsg = await getRecentMsg(activeChannelObject)
-                        # refreshMessageCache = asyncio.create_task(cacheRefresh(authorOutp, curMsg, lastMessage))
-                        # curMsg = await refreshMessageCache
-                        # if(newMessage == ">exit"):
-                        #     sendMode = False
-                        # await activeChannelObject.send(newMessage)
-                        if(curMsg != lastMessage):
+                        checc = cacheRefresh(authorOutp, curMsg, lastMessage)
+                        if(checc):
                             authorOutp = str(curMsg.author)
                             if(not bool(settings['PRINT_IDENTIFIERS'])):
                                 authorSpl = str(curMsg.author).split("#")
                                 authorOutp = authorSpl[0]
+                            print(f"{bcolors.OKGREEN}{authorOutp}:{bcolors.ENDC} {message.content}")
                             lastMessage = curMsg
-                            print(f"{colored(authorOutp, 'yellow')}: {curMsg.content}")
                 else:
                     print(f"no such channel {parsedCommand[1]}.")
             except IndexError:
@@ -153,19 +160,9 @@ async def getRecentMsg(channel):
     ret = await channel.history(limit=1).flatten()
     return ret[0]
 
-async def cacheRefresh(authorOutp, curMsg, lastMessage):
+def cacheRefresh(authorOutp, curMsg, lastMessage):
     if(curMsg != lastMessage):
-        authorOutp = str(curMsg.author)
-        if(not bool(settings['PRINT_IDENTIFIERS'])):
-            authorSpl = str(curMsg.author).split("#")
-            authorOutp = authorSpl[0]
-    print(f"{colored(authorOutp, 'yellow')}: {curMsg.content}")
-    return lastMessage
-
-async def ainput(string: str) -> str:
-    await asyncio.get_event_loop().run_in_executor(
-            None, lambda s=string: sys.stdout.write(s+' '))
-    return await asyncio.get_event_loop().run_in_executor(
-            None, sys.stdin.readline)
+        return True
+    return False
 
 client.run(settings['TOKEN'])
