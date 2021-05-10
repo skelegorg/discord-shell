@@ -30,23 +30,25 @@ class bcolors:
 @client.event
 async def on_ready():
     await client.change_presence(status=discord.Status.online, activity=discord.Game('with the shell'))
+    if(settings["HEADLESS_BOOT"] == "True"):
+        guild = client.get_guild(int(settings["DEFAULT_SERVER_ID"]))
+        await open_terminal(guild, "headless")
 
 @client.command()
 async def terminal(ctx, arg):
     if(arg == "start"):
+        print(ctx.guild.id)
         await ctx.send("loading session.")
-        await open_terminal(ctx)
+        await open_terminal(ctx.guild, str(ctx.author))
     elif(arg == "close"):
         # end the active session
         await ctx.send("ending session.")
         quit()
 
-async def open_terminal(ctx):
-    # coroutines for loading messages
-
+async def open_terminal(guild, auth):
     inTerminal = True
     level = "ca"
-    active_guild = ctx.guild
+    active_guild = guild
 
     # load categories
     activeCategory = ""
@@ -60,10 +62,9 @@ async def open_terminal(ctx):
     messages = []
 
     # user vanity
-    user = str(ctx.author)
+    user = auth
     userspl = user.split("#")
     tag = userspl[0]
-    discriminator = "#" + userspl[1]
 
     compname = str(socket.gethostname())
     uname = str(getpass.getuser())
@@ -105,7 +106,7 @@ async def open_terminal(ctx):
                     activeChannel = parsedCommand[1]
                     activeChannelObject = channelList[activeChannel]
                     # swap ctx channel
-                    ctx.channel = activeChannelObject.id
+                    # ctx.channel = activeChannelObject.id
                     # get the last 15 messages in the channel
                     messages = await activeChannelObject.history(limit=15).flatten()
                     messages.reverse()
@@ -125,7 +126,7 @@ async def open_terminal(ctx):
                     activeChannel = parsedCommand[1]
                     activeChannelObject = channelList[activeChannel]
                     # swap ctx channel
-                    ctx.channel = activeChannelObject.id
+                    # ctx.channel = activeChannelObject.id
                     messages = await activeChannelObject.history(limit=15).flatten()
                     messages.reverse()
                     lastMessage = await getRecentMsg(activeChannelObject)
@@ -148,9 +149,22 @@ async def open_terminal(ctx):
                             print(f"{bcolors.OKGREEN}{authorOutp}:{bcolors.ENDC} {message.content}")
                             lastMessage = curMsg
                 else:
-                    print(f"no such channel {parsedCommand[1]}.")
+                    print(f"no such channel \"{parsedCommand[1]}\".")
             except IndexError:
                 print("supply a path")
+        elif(parsedCommand[0] == "send"):
+            # send [channel] [message]
+            msg = ""
+            for i in range(len(parsedCommand)):
+                if(i > 1):
+                    msg += f"{parsedCommand[i]} "
+            # get channel associated with parsedcommand[1]
+            if parsedCommand[1] in channelList:
+                activeChannel = parsedCommand[1]
+                activeChannelObject = channelList[activeChannel]
+                await activeChannelObject.send(msg)
+            else: 
+                print(f"no such channel \"{parsedCommand[i]}\"")
         elif(parsedCommand[0] == "exit"):
             inTerminal = False
         else:
