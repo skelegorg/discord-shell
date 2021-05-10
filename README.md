@@ -1,7 +1,7 @@
 # discord shell
  navigate discord through the console! has the capability to function as a selfbot (i do not officially support this) or can run through a bot you create (as i have done)
 
-start the bot by typing >terminal start
+start the bot by typing >terminal start. 
 alternatively, if you have headless boot enabled the bot will boot into your default server when the script is executed.
 
 traverse the server in a file-system like format with linux bash syntax
