@@ -6,9 +6,12 @@ import time
 import os
 import platform
 import socket
+import ctypes
 
 if(platform.system() == "Windows"):
     os.system('color')
+
+ctypes.windll.kernel32.SetConsoleTitleW("Discord")
 
 settings = {}
 with open("settings.json", "r") as stg:
@@ -30,6 +33,7 @@ class bcolors:
 @client.event
 async def on_ready():
     await client.change_presence(status=discord.Status.online, activity=discord.Game('with the shell'))
+    # configure headless boot
     if(settings["HEADLESS_BOOT"] == "True"):
         guild = client.get_guild(int(settings["DEFAULT_SERVER_ID"]))
         await open_terminal(guild, "headless")
@@ -37,7 +41,6 @@ async def on_ready():
 @client.command()
 async def terminal(ctx, arg):
     if(arg == "start"):
-        print(ctx.guild.id)
         await ctx.send("loading session.")
         await open_terminal(ctx.guild, str(ctx.author))
     elif(arg == "close"):
@@ -54,7 +57,8 @@ async def open_terminal(guild, auth):
     activeCategory = ""
     categoryList = {}
     for category in active_guild.categories:
-        categoryList.update({category.name: category})
+        name = category.name.lower()
+        categoryList.update({name: category})
     
     # channel data
     activeChannel = ""
@@ -140,7 +144,7 @@ async def open_terminal(guild, auth):
                     while(sendMode):
                         time.sleep(0.05)
                         curMsg = await getRecentMsg(activeChannelObject)
-                        checc = cacheRefresh(authorOutp, curMsg, lastMessage)
+                        checc = cacheRefresh(curMsg, lastMessage)
                         if(checc):
                             authorOutp = str(curMsg.author)
                             if(not bool(settings['PRINT_IDENTIFIERS'])):
@@ -165,6 +169,43 @@ async def open_terminal(guild, auth):
                 await activeChannelObject.send(msg)
             else: 
                 print(f"no such channel \"{parsedCommand[i]}\"")
+        elif(parsedCommand[0] == "stream"):
+            # stream with message refresh (enter)
+            try:
+                if(parsedCommand[1] in channelList):
+                    activeChannel = parsedCommand[1]
+                    activeChannelObject = channelList[activeChannel]
+                    # swap ctx channel
+                    # ctx.channel = activeChannelObject.id
+                    messages = await activeChannelObject.history(limit=15).flatten()
+                    messages.reverse()
+                    lastMessage = await getRecentMsg(activeChannelObject)
+                    sendMode = True
+                    for message in messages:
+                        authorOutp = str(message.author)
+                        if(not bool(settings['PRINT_IDENTIFIERS'])):
+                            authorSpl = str(message.author).split("#")
+                            authorOutp = authorSpl[0]
+                        print(f"{bcolors.OKGREEN}{authorOutp}:{bcolors.ENDC} {message.content}")
+                    while(sendMode):
+                        curMsg = await getRecentMsg(activeChannelObject)
+                        checc = cacheRefresh(curMsg, lastMessage)
+                        if(checc):
+                            authorOutp = str(curMsg.author)
+                            if(not bool(settings['PRINT_IDENTIFIERS'])):
+                                authorSpl = str(curMsg.author).split("#")
+                                authorOutp = authorSpl[0]
+                            print(f"{bcolors.OKGREEN}{authorOutp}:{bcolors.ENDC} {curMsg.content}")
+                            lastMessage = curMsg
+                        sned = input()
+                        if(sned == "estream"):
+                            sendMode = False
+                        elif(sned != ""):
+                            await activeChannelObject.send(sned)
+                    else:
+                        print(f"no such channel \"{parsedCommand[1]}\".")
+            except IndexError:
+                print(f"no such channel {parsedCommand[1]} found.")
         elif(parsedCommand[0] == "exit"):
             inTerminal = False
         else:
@@ -174,7 +215,7 @@ async def getRecentMsg(channel):
     ret = await channel.history(limit=1).flatten()
     return ret[0]
 
-def cacheRefresh(authorOutp, curMsg, lastMessage):
+def cacheRefresh(curMsg, lastMessage):
     if(curMsg != lastMessage):
         return True
     return False
