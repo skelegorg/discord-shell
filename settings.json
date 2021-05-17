@@ -1,4 +1,6 @@
 {
+    "HEADLESS_BOOT": "False",
     "PRINT_IDENTIFIERS": "True",
-    "TOKEN": "your token here"
+    "TOKEN": "your token here",
+    "DEFAULT_SERVER_ID": "default server id here"
 }
